@@ -14,10 +14,13 @@ namespace Zeroer
         public bool Exists;
         public long Size;
 
+        public bool Canceled;
+
         private FileInfo info;
 
         public ZeroFile(char DriveLetter)
         {
+            this.Canceled = false;
             this.DriveLetter = DriveLetter;
             this.DriveName = DriveLetter.ToString() + ":";
             this.FileName = this.DriveName + "\\zeroer.000";
@@ -40,26 +43,31 @@ namespace Zeroer
             return zf.Size;
         }
 
-        public void ZeroFreeSpace(System.Windows.Forms.ProgressBar progressBar)
+        public void ZeroFreeSpace(bool withOnes, System.Windows.Forms.ProgressBar progressBar)
         {
             this.FileName = this.DriveName + "\\zeroer.$$$";
             if (File.Exists(this.FileName)) File.Delete(this.FileName);
             DriveInfo driveInfo = new DriveInfo(this.DriveLetter);
             long megaBytes = driveInfo.FreeSpace / DriveInfo.MEGABYTE;
-            Create(megaBytes, progressBar);
+            Create(megaBytes, withOnes, progressBar);
             if (File.Exists(this.FileName)) File.Delete(this.FileName);
         }
 
-        public void Create(long MegaBytes)
+        public void Create(long MegaBytes, bool withOnes)
         {
-            this.Create(MegaBytes, null);
+            this.Create(MegaBytes, withOnes, null);
             File.Delete(this.FileName);
         }
 
-        public void Create(long MegaBytes, System.Windows.Forms.ProgressBar progressBar)
+        public void Create(long MegaBytes, bool withOnes, System.Windows.Forms.ProgressBar progressBar)
         {
             byte[] megaByte = new byte[DriveInfo.MEGABYTE];
-            for (long c = 0; c < DriveInfo.MEGABYTE; c++) megaByte[c] = 0;
+            byte[] megaByteOnes = new byte[DriveInfo.MEGABYTE];
+            for (long c = 0; c < DriveInfo.MEGABYTE; c++)
+            {
+                megaByte[c] = 0;
+                megaByteOnes[c] = 0xff;
+            }
             this.Size = MegaBytes * DriveInfo.MEGABYTE;
 
             if (progressBar != null)
@@ -68,13 +76,21 @@ namespace Zeroer
                 progressBar.Value = 0;
             }
             FileStream fs = new FileStream(this.FileName, FileMode.CreateNew);
-            for (long c = 0; c < MegaBytes; c++)
+            for (long c = 0; c < MegaBytes && !Canceled; c++)
             {
-                fs.Write(megaByte, 0, (int)DriveInfo.MEGABYTE);
-                if (progressBar != null)
+                if (withOnes)
                 {
-                    progressBar.Value = (int)(c + 1);
-                    System.Windows.Forms.Application.DoEvents();
+                    fs.Write(megaByteOnes, 0, (int)DriveInfo.MEGABYTE);
+                    fs.Position -= (int)DriveInfo.MEGABYTE;
+                }
+                if (!Canceled)
+                {
+                    fs.Write(megaByte, 0, (int)DriveInfo.MEGABYTE);
+                    if (progressBar != null)
+                    {
+                        progressBar.Value = (int)(c + 1);
+                        System.Windows.Forms.Application.DoEvents();
+                    }
                 }
             }
             fs.Close();
@@ -89,15 +105,20 @@ namespace Zeroer
             this.Size = 0;
         }
 
-        public void Expand(long MegaBytes)
+        public void Expand(long MegaBytes, bool withOnes)
         {
-            this.Expand(MegaBytes, null);
+            this.Expand(MegaBytes, withOnes, null);
         }
 
-        public void Expand(long MegaBytes, System.Windows.Forms.ProgressBar progressBar)
+        public void Expand(long MegaBytes, bool withOnes, System.Windows.Forms.ProgressBar progressBar)
         {
             byte[] megaByte = new byte[DriveInfo.MEGABYTE];
-            for (long c = 0; c < DriveInfo.MEGABYTE; c++) megaByte[c] = 0;
+            byte[] megaByteOnes = new byte[DriveInfo.MEGABYTE];
+            for (long c = 0; c < DriveInfo.MEGABYTE; c++)
+            {
+                megaByte[c] = 0;
+                megaByteOnes[c] = 0xff;
+            }
             this.Size += MegaBytes * DriveInfo.MEGABYTE;
 
             if (progressBar != null)
@@ -106,13 +127,21 @@ namespace Zeroer
                 progressBar.Value = 0;
             }
             FileStream fs = new FileStream(this.FileName, FileMode.Append);
-            for (long c = 0; c < MegaBytes; c++)
+            for (long c = 0; c < MegaBytes && !Canceled; c++)
             {
-                fs.Write(megaByte, 0, (int)DriveInfo.MEGABYTE);
-                if (progressBar != null)
+                if (withOnes)
                 {
-                    progressBar.Value = (int)(c + 1);
-                    System.Windows.Forms.Application.DoEvents();
+                    fs.Write(megaByteOnes, 0, (int)DriveInfo.MEGABYTE);
+                    fs.Position -= (int)DriveInfo.MEGABYTE;
+                }
+                if (!Canceled)
+                {
+                    fs.Write(megaByte, 0, (int)DriveInfo.MEGABYTE);
+                    if (progressBar != null)
+                    {
+                        progressBar.Value = (int)(c + 1);
+                        System.Windows.Forms.Application.DoEvents();
+                    }
                 }
             }
             fs.Close();

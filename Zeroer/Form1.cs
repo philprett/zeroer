@@ -24,6 +24,9 @@ namespace Zeroer
 		private System.Windows.Forms.Label label2;
 		private System.Windows.Forms.ProgressBar progressBar;
         private Button buttonZeroFreeSpace;
+        private CheckBox chkWithOnes;
+
+		private ZeroFile zeroFile;
 
         /// <summary>
         /// Required designer variable.
@@ -36,7 +39,7 @@ namespace Zeroer
 			// Required for Windows Form Designer support
 			//
 			InitializeComponent();
-
+			
 			//
 			// TODO: Add any constructor code after InitializeComponent call
 			//
@@ -75,6 +78,7 @@ namespace Zeroer
             this.label2 = new System.Windows.Forms.Label();
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.buttonZeroFreeSpace = new System.Windows.Forms.Button();
+            this.chkWithOnes = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // label1
@@ -92,7 +96,7 @@ namespace Zeroer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.listDrives.Location = new System.Drawing.Point(8, 24);
             this.listDrives.Name = "listDrives";
-            this.listDrives.Size = new System.Drawing.Size(280, 108);
+            this.listDrives.Size = new System.Drawing.Size(280, 134);
             this.listDrives.TabIndex = 1;
             this.listDrives.SelectedIndexChanged += new System.EventHandler(this.listDrives_SelectedIndexChanged);
             // 
@@ -163,7 +167,7 @@ namespace Zeroer
             // 
             this.progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBar.Location = new System.Drawing.Point(8, 141);
+            this.progressBar.Location = new System.Drawing.Point(8, 178);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(443, 23);
             this.progressBar.TabIndex = 9;
@@ -179,10 +183,21 @@ namespace Zeroer
             this.buttonZeroFreeSpace.Text = "Zero Free Space";
             this.buttonZeroFreeSpace.Click += new System.EventHandler(this.buttonZeroFreeSpace_Click);
             // 
+            // chkWithOnes
+            // 
+            this.chkWithOnes.AutoSize = true;
+            this.chkWithOnes.Location = new System.Drawing.Point(296, 138);
+            this.chkWithOnes.Name = "chkWithOnes";
+            this.chkWithOnes.Size = new System.Drawing.Size(100, 17);
+            this.chkWithOnes.TabIndex = 11;
+            this.chkWithOnes.Text = "Also with ones?";
+            this.chkWithOnes.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
-            this.ClientSize = new System.Drawing.Size(459, 176);
+            this.ClientSize = new System.Drawing.Size(459, 213);
+            this.Controls.Add(this.chkWithOnes);
             this.Controls.Add(this.buttonZeroFreeSpace);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.label2);
@@ -198,8 +213,10 @@ namespace Zeroer
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Zeroer";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
 		}
 		#endregion
@@ -304,7 +321,9 @@ namespace Zeroer
 					this.buttonExpand.Enabled = false;
 					this.buttonShrink.Enabled = false;
                     this.buttonZeroFreeSpace.Enabled = false;
-                    zf.Create(amount/DriveInfo.MEGABYTE,this.progressBar);
+					zeroFile = new ZeroFile(driveLetter);
+					zeroFile.Create(amount/DriveInfo.MEGABYTE, chkWithOnes.Checked, this.progressBar);
+					zeroFile = null;
 					buttonRefresh_Click(sender, e);
 					listDrives.SelectedIndex = selectedDrive;
 					this.Cursor = Cursors.Arrow;
@@ -367,7 +386,9 @@ namespace Zeroer
 					this.buttonExpand.Enabled = false;
 					this.buttonShrink.Enabled = false;
                     this.buttonZeroFreeSpace.Enabled = false;
-                    zf.Expand(amount/DriveInfo.MEGABYTE,this.progressBar);
+					zeroFile = new ZeroFile(driveLetter);
+                    zeroFile.Expand(amount/DriveInfo.MEGABYTE, chkWithOnes.Checked, this.progressBar);
+					zeroFile = null;
 					buttonRefresh_Click(sender, e);
 					listDrives.SelectedIndex = selectedDrive;
 					this.Cursor = Cursors.Arrow;
@@ -425,11 +446,21 @@ namespace Zeroer
             this.buttonExpand.Enabled = false;
             this.buttonShrink.Enabled = false;
             this.buttonZeroFreeSpace.Enabled = false;
-            zf.ZeroFreeSpace(this.progressBar);
+			zeroFile = new ZeroFile(driveLetter);
+            zeroFile.ZeroFreeSpace(chkWithOnes.Checked, this.progressBar);
+			zeroFile = null;
             buttonRefresh_Click(sender, e);
             listDrives.SelectedIndex = selectedDrive;
             this.Cursor = Cursors.Arrow;
 
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+			if (zeroFile != null)
+			{
+				zeroFile.Canceled = true;
+			}
         }
     }
 }
